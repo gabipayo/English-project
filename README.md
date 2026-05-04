@@ -1,1 +1,287 @@
 # English-project
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Engineering Trivia</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0a0f; --bg2: #0d0d15; --bg3: #111120; --border: #1e1e30; --border2: #2a2a42;
+    --blue: #3b82f6; --blue-bg: rgba(59,130,246,0.10); --blue-border: rgba(59,130,246,0.35);
+    --green: #22c55e; --green-bg: rgba(34,197,94,0.10); --green-border: rgba(34,197,94,0.35);
+    --red: #ef4444; --red-bg: rgba(239,68,68,0.10); --red-border: rgba(239,68,68,0.35);
+    --yellow: #f59e0b; --yellow-bg: rgba(245,158,11,0.10); --yellow-border: rgba(245,158,11,0.35);
+    --text: #f0f0f8; --text2: #8888aa; --text3: #444460; --radius: 6px;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --mono: 'Courier New', Courier, monospace;
+  }
+  body { background: var(--bg); font-family: var(--font); color: var(--text); min-height: 100vh; display: flex; align-items: flex-start; justify-content: center; padding: 2rem 1rem; }
+  body::before { content: ''; position: fixed; inset: 0; background-image: linear-gradient(rgba(59,130,246,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.04) 1px, transparent 1px); background-size: 40px 40px; pointer-events: none; z-index: 0; }
+  .wrap { width: 100%; max-width: 680px; position: relative; z-index: 1; }
+  .screen { display: none; } .screen.active { display: block; }
+  .title-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+  .game-title { font-size: 20px; font-weight: 700; color: var(--text); letter-spacing: -0.5px; }
+  .game-title span { color: var(--blue); }
+  .mono-sm { font-family: var(--mono); font-size: 11px; color: var(--text3); letter-spacing: 0.06em; }
+  .setup-card { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; margin-bottom: 1rem; }
+  .setup-label { font-size: 11px; font-family: var(--mono); color: var(--text3); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 1rem; }
+  .player-row { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+  .player-tag { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; font-family: var(--mono); flex-shrink: 0; }
+  .p0 { background: var(--blue-bg); color: var(--blue); border: 1px solid var(--blue-border); }
+  .p1 { background: var(--yellow-bg); color: var(--yellow); border: 1px solid var(--yellow-border); }
+  .p2 { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+  .p3 { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-border); }
+  .player-row input { flex: 1; padding: 8px 12px; font-size: 14px; font-family: var(--font); border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg2); color: var(--text); outline: none; }
+  .add-btn { font-size: 13px; color: var(--blue); cursor: pointer; padding: 4px 0; background: none; border: none; font-family: var(--mono); }
+  .start-btn, .restart-btn, .next-btn { width: 100%; padding: 12px; font-size: 14px; font-weight: 600; font-family: var(--font); cursor: pointer; border-radius: var(--radius); border: 1px solid var(--blue-border); background: var(--blue-bg); color: var(--blue); margin-top: 8px; }
+  .next-btn { display: none; border-color: var(--border); background: var(--bg3); color: var(--text2); }
+  .next-btn.show { display: block; }
+  .restart-btn { margin-top: 0; }
+  .board { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; margin-bottom: 1rem; overflow-x: auto; }
+  .track { display: flex; gap: 5px; align-items: center; min-width: max-content; }
+  .cell { width: 38px; height: 38px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg2); display: flex; align-items: center; justify-content: center; font-size: 10px; font-family: var(--mono); color: var(--text3); position: relative; flex-shrink: 0; }
+  .cell.start { background: var(--green-bg); border-color: var(--green-border); color: var(--green); font-size: 9px; font-weight: 700; }
+  .cell.finish { background: var(--yellow-bg); border-color: var(--yellow-border); color: var(--yellow); font-size: 14px; }
+  .cell.checkpoint { background: var(--blue-bg); border-color: var(--blue-border); color: var(--blue); }
+  .token { width: 11px; height: 11px; border-radius: 50%; position: absolute; border: 2px solid var(--bg); }
+  .tk0 { background: #3b82f6; top: 2px; left: 2px; } .tk1 { background: #f59e0b; top: 2px; right: 2px; }
+  .tk2 { background: #22c55e; bottom: 2px; left: 2px; } .tk3 { background: #ef4444; bottom: 2px; right: 2px; }
+  .scoreboard { display: flex; gap: 8px; margin-bottom: 1rem; flex-wrap: wrap; }
+  .score-card { flex: 1; min-width: 130px; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; }
+  .score-card.active { border-color: var(--blue-border); background: var(--blue-bg); }
+  .score-name { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; }
+  .score-card.active .score-name { color: var(--blue); }
+  .score-pos { font-size: 11px; font-family: var(--mono); color: var(--text3); }
+  .score-card.active .score-pos { color: var(--blue); opacity: 0.7; }
+  .turn-banner { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 16px; margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between; }
+  .turn-text { font-size: 14px; color: var(--text2); } .turn-name { color: var(--text); font-weight: 700; }
+  .question-card { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; margin-bottom: 1rem; }
+  .q-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .q-cat { font-size: 11px; font-family: var(--mono); color: var(--text3); letter-spacing: 0.1em; }
+  .diff { font-size: 10px; font-family: var(--mono); padding: 2px 8px; border-radius: 20px; letter-spacing: 0.08em; font-weight: 700; }
+  .diff-easy { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+  .diff-medium { background: var(--yellow-bg); color: var(--yellow); border: 1px solid var(--yellow-border); }
+  .diff-hard { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-border); }
+  .q-text { font-size: 16px; font-weight: 600; color: var(--text); line-height: 1.55; margin-bottom: 1.25rem; }
+  .options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .opt { padding: 11px 14px; font-size: 13px; font-family: var(--font); text-align: left; cursor: pointer; border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg2); color: var(--text2); line-height: 1.4; }
+  .opt:hover:not(:disabled) { background: var(--bg); border-color: var(--border2); color: var(--text); }
+  .opt:disabled { cursor: default; }
+  .opt.correct { background: var(--green-bg); border-color: var(--green-border); color: var(--green); }
+  .opt.wrong { background: var(--red-bg); border-color: var(--red-border); color: var(--red); }
+  .opt.reveal { background: var(--green-bg); border-color: var(--green-border); color: var(--green); }
+  .feedback { padding: 12px 16px; border-radius: var(--radius); margin-bottom: 1rem; font-size: 13px; line-height: 1.6; display: none; }
+  .feedback.show { display: block; }
+  .feedback.ok { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+  .feedback.no { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-border); }
+  .end-card { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 2.5rem 2rem; text-align: center; }
+  .trophy-label { font-family: var(--mono); font-size: 11px; color: var(--yellow); letter-spacing: 0.15em; margin-bottom: 10px; }
+  .winner-name { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 4px; }
+  .winner-sub { font-size: 13px; color: var(--text2); margin-bottom: 2rem; }
+  .final-scores { text-align: left; border-top: 1px solid var(--border); padding-top: 1rem; margin-bottom: 1.5rem; }
+  .final-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; font-size: 13px; border-bottom: 1px solid var(--border); color: var(--text2); }
+  .final-row:last-child { border: none; } .final-row strong { color: var(--text); }
+  @media (max-width: 480px) { .options { grid-template-columns: 1fr; } .scoreboard { flex-direction: column; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="screen active" id="screen-setup">
+    <div class="title-bar">
+      <div class="game-title">AI <span>Engineering</span> Trivia</div>
+      <div class="mono-sm">// first to finish wins</div>
+    </div>
+    <div class="setup-card">
+      <div class="setup-label">// players (1-4)</div>
+      <div id="player-inputs">
+        <div class="player-row"><div class="player-tag p0">P1</div><input id="p0" value="Player 1" placeholder="Player 1 name"></div>
+      </div>
+      <button class="add-btn" id="add-btn">+ Add player</button>
+    </div>
+    <button class="start-btn" id="start-btn">Start game</button>
+  </div>
+
+  <div class="screen" id="screen-game">
+    <div class="title-bar">
+      <div class="game-title">AI <span>Engineering</span> Trivia</div>
+      <div class="mono-sm" id="q-counter">Q 1</div>
+    </div>
+    <div class="board"><div class="track" id="track"></div></div>
+    <div class="scoreboard" id="scoreboard"></div>
+    <div class="turn-banner">
+      <span class="turn-text">Turn: <span class="turn-name" id="turn-name"></span></span>
+      <span class="mono-sm">correct = +2 steps</span>
+    </div>
+    <div class="question-card">
+      <div class="q-top"><div class="q-cat" id="q-cat"></div><span class="diff" id="q-diff"></span></div>
+      <div class="q-text" id="q-text"></div>
+      <div class="options" id="options"></div>
+    </div>
+    <div class="feedback" id="feedback"></div>
+    <button class="next-btn" id="next-btn">Next turn</button>
+  </div>
+
+  <div class="screen" id="screen-end">
+    <div class="end-card">
+      <div class="trophy-label">// WINNER</div>
+      <div class="winner-name" id="winner-name"></div>
+      <div class="winner-sub">Reached the finish line first!</div>
+      <div class="final-scores" id="final-scores"></div>
+      <button class="restart-btn" id="restart-btn">Play again</button>
+    </div>
+  </div>
+</div>
+<script>
+var TOTAL=16,FINISH=15,CHECKPOINTS=[4,9,14];
+var TAG=['p0','p1','p2','p3'];
+var Q=[
+  {cat:'// basics',d:'easy',q:'What does AI stand for?',opts:['Automated Infrastructure','Artificial Intelligence','Augmented Integration','Algorithmic Interface'],ans:1,exp:'AI = Artificial Intelligence: computer systems that learn from data to make better decisions.'},
+  {cat:'// machine learning',d:'easy',q:'Machine learning is a branch of AI. What does it primarily do?',opts:['Manufacture physical machines','Train algorithms on data to identify patterns and make predictions','Replace mechanical drawings entirely','Run structural simulations faster'],ans:1,exp:'Machine learning trains algorithms on large datasets to identify relationships and make predictions.'},
+  {cat:'// deep learning',d:'medium',q:'Deep learning is a branch of machine learning. What makes it distinct?',opts:['It learns from physical lab experiments','It interprets complex data like stress maps and fluid flow','It only works with text and language','It fully replaces all other AI methods'],ans:1,exp:'Deep learning interprets complex information such as stress distribution maps or fluid flow and draws meaningful conclusions.'},
+  {cat:'// LLMs',d:'medium',q:'What is the primary training objective of a Large Language Model (LLM)?',opts:['Minimize energy consumption','Predict the next or missing word in a sequence','Generate 3D CAD models from text','Classify engineering materials by density'],ans:1,exp:'LLMs are trained to predict the next (or missing) word in a sentence. Additional objectives are added for further refinement.'},
+  {cat:'// generative design',d:'medium',q:'What must an engineer provide to a generative design AI tool to get results?',opts:['A finished design to improve','Design constraints and requirements','Raw manufacturing cost data','A competitor product to copy'],ans:1,exp:'Engineers input their design constraints and automatically obtain solutions optimized for those requirements.'},
+  {cat:'// generative design',d:'hard',q:'Which specific claim does the paper make about generative design solution spaces?',opts:['They are exactly 10x larger than human exploration','They are orders of magnitude larger than any human can explore','They are limited to 1000 design variants','They equal the output of a team of expert engineers'],ans:1,exp:'The paper states generative design tools explore a solution space "orders of magnitude larger" than any human engineer can possibly explore.'},
+  {cat:'// FEA',d:'medium',q:'What was the core problem with traditional Finite Element Analysis before AI?',opts:['It could not simulate metal, only plastic','Engineers manually input and iterated values -- slow and error-prone','It required too many networked computers','It was restricted to 2D analysis only'],ans:1,exp:'Traditional FEA required engineers to manually input and iteratively refine values -- time-consuming and highly fallible.'},
+  {cat:'// FEA',d:'hard',q:'What specific advantage does AI-powered FEA provide early in the design cycle?',opts:['It eliminates all need for physical prototypes','It identifies issues earlier, reducing redesign costs and improving safety','It generates fully autonomous designs','It replaces engineer safety judgment entirely'],ans:1,exp:'AI-powered FEA lets engineers detect problems much earlier in development -- reducing redesign costs and producing safer designs.'},
+  {cat:'// CFD',d:'medium',q:'Why was traditional CFD so computationally demanding?',opts:['It required hardware only governments could afford','It needed enormous processing time and computational power','Engineers had to program each fluid particle manually','It could only run once per project'],ans:1,exp:'Traditional CFD simulations took a lot of processing time and demanded enormous computational power to model fluid behavior.'},
+  {cat:'// CFD',d:'hard',q:'How exactly does machine learning change CFD simulation speed?',opts:['It doubles available processing cores','By learning from existing results, it simulates fluid behavior in seconds','It replaces fluid physics with pure statistics','It outsources computation to cloud servers automatically'],ans:1,exp:'ML learns from existing simulation results and can then simulate fluid behavior in seconds -- enabling far more testing.'},
+  {cat:'// CFD applications',d:'hard',q:'Which of these is NOT listed as a CFD aviation application in the paper?',opts:['Avionics cooling','Aero-optics','Structural fatigue crack propagation','Cabin HVAC air circulation'],ans:2,exp:'The paper lists avionics cooling, aero-optics, external aerodynamics, cabin HVAC, and propulsion. Structural fatigue uses FEA, not CFD.'},
+  {cat:'// agentic AI',d:'hard',q:'What does "DFM" stand for in the 2026 agentic AI manufacturing context?',opts:['Deep Feature Modeling','Design for Manufacturability','Dynamic Fluid Mechanics','Data Flow Management'],ans:1,exp:'Agentic AI in 2026 enables autonomous agents to conduct real-time Design for Manufacturability (DFM) and tolerance analysis.'},
+  {cat:'// AI limitations',d:'hard',q:'The black box problem and overreliance on training data are described as what in the paper?',opts:['Minor inconveniences engineers can work around','Major constraints that could cause complete mechanical system failure','Temporary bugs being fixed by developers','Problems only relevant to software engineering'],ans:1,exp:'The paper calls these "major constraints" -- faulty training data in safety-sensitive applications could cause complete mechanical system failure.'},
+  {cat:'// AI limitations',d:'hard',q:'What specific industry question does the black box problem raise?',opts:['Should AI be banned from engineering?','How does validation change when shifting from human-designed to AI-generated designs?','Who owns IP of AI-generated designs?','Can AI replace engineering education?'],ans:1,exp:'The paper poses exactly this: what changes in the validation process when the shift from human-designed to AI-generated design is made?'},
+  {cat:'// tools',d:'medium',q:'Which platform is specifically named as making generative design accessible to engineers?',opts:['SolidWorks Ultimate','Autodesk Fusion 360','ANSYS Workbench','MATLAB Simulink'],ans:1,exp:'Autodesk Fusion 360 is specifically named as having implemented generative design tools accessible to practicing engineers.'},
+  {cat:'// sources',d:'hard',q:'The quote "AI is a tool to amplify human creativity and ingenuity" is attributed to whom?',opts:['Elon Musk, Tesla','Fei-Fei Li, Stanford University','Tshilidzi Marwala, United Nations University','Hosseini and Seilani, ScienceDirect'],ans:1,exp:'This quote is from Fei-Fei Li of Stanford University, cited via Marwala\'s article at the United Nations University.'},
+  {cat:'// sources',d:'hard',q:'Which journal published the structured review of generative design trends cited in the paper?',opts:['Nature Engineering','ASME Journal of Mechanical Design','MDPI -- Designs journal (2025)','ScienceDirect Automation'],ans:2,exp:'Peckham et al. published their structured review in MDPI\'s Designs journal in June 2025.'},
+  {cat:'// confusing',d:'hard',q:'AI in CFD "learns from existing simulation results." Which AI type is this an example of?',opts:['Agentic AI conducting autonomous analysis','Supervised machine learning applied to simulation data','A Large Language Model solving fluid equations','Generative design applied to fluid systems'],ans:1,exp:'Using existing simulation results as training data to speed future simulations is machine learning -- not LLMs or agentic AI.'},
+  {cat:'// confusing',d:'hard',q:'An engineer inputs constraints and AI generates 500 bracket designs selecting the lightest. Which technology?',opts:['Computational Fluid Dynamics (CFD)','Finite Element Analysis (FEA)','Generative design','A Large Language Model'],ans:2,exp:'Generating multiple optimized geometries from constraints is generative design -- not FEA (tests structures) or CFD (simulates fluids).'},
+  {cat:'// confusing',d:'hard',q:'Which best matches the paper\'s conclusion about AI replacing engineers?',opts:['AI will replace engineers within a decade','AI already replaces most engineering tasks','AI handles tedious tasks; human creativity remains essential','AI only assists junior engineers'],ans:2,exp:'The paper concludes AI handles boring tasks while engineers focus on creativity and innovation -- a cooperative relationship, not replacement.'},
+  {cat:'// confusing',d:'hard',q:'Deep learning and machine learning: which correctly describes their relationship?',opts:['Completely separate and unrelated fields','Machine learning is a subset of deep learning','Deep learning is a subset of machine learning, which is a subset of AI','They are the same thing with different names'],ans:2,exp:'Deep learning is a branch of machine learning, which is a branch of AI. The paper states this hierarchy explicitly.'},
+  {cat:'// confusing',d:'hard',q:'FEA predicts stress. CFD simulates fluids. What do BOTH have in common per the paper?',opts:['Both are being accelerated and improved by AI','Both are fully automated with no human needed','Both are used exclusively in aerospace','Both require more human input with AI than before'],ans:0,exp:'Both FEA and CFD are being dramatically accelerated and improved by AI -- the core argument of the paper\'s simulation section.'},
+  {cat:'// trick',d:'hard',q:'The paper mentions generative design results in "quicker development cycles and sustainability." What does sustainability mean here?',opts:['Environmental carbon offsets only','Reduced engineering labor costs only','Lighter optimized designs that reduce material and energy use','A separate unrelated topic in the paper'],ans:2,exp:'Sustainability here means engineering efficiency -- lighter optimized geometries use less material and energy.'},
+  {cat:'// trick',d:'hard',q:'Which most accurately states the paper\'s central thesis?',opts:['AI will eventually replace all mechanical engineers','AI is too dangerous for safety-critical engineering','AI is reinventing the design process by accelerating optimizing and expanding creative opportunity','AI is only useful for simulation not design'],ans:2,exp:'The thesis: "AI is reinventing how the engineering design process takes place by accelerating the pace, optimizing it, and creating more opportunities for innovation and creativity."'},
+  {cat:'// trick',d:'hard',q:'The hook describes AI producing designs "before you get your morning coffee." What is its rhetorical purpose?',opts:['To warn that engineering jobs are in immediate danger','To vividly illustrate how dramatically AI accelerated the design process','To suggest engineers should work fewer hours','To compare AI speed to human laziness'],ans:1,exp:'The hook vividly illustrates speed -- AI doing in hours what took engineers weeks -- setting up the argument about acceleration and optimization.'}
+];
+
+var players=[],positions=[],curPlayer=0,answered=false,qIdx=0,usedQs=[],nPlayers=1;
+var shuffled=[],correctPos=-1,curQ=null;
+
+function shuffle(a){var r=a.slice();for(var i=r.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=r[i];r[i]=r[j];r[j]=t;}return r;}
+function show(id){var ss=document.querySelectorAll('.screen');for(var i=0;i<ss.length;i++)ss[i].classList.remove('active');document.getElementById('screen-'+id).classList.add('active');}
+
+document.getElementById('add-btn').addEventListener('click',function(){
+  if(nPlayers>=4)return;
+  var div=document.createElement('div');div.className='player-row';
+  div.innerHTML='<div class="player-tag '+TAG[nPlayers]+'">P'+(nPlayers+1)+'</div><input id="p'+nPlayers+'" value="Player '+(nPlayers+1)+'" placeholder="Player '+(nPlayers+1)+' name">';
+  document.getElementById('player-inputs').appendChild(div);
+  nPlayers++;
+  if(nPlayers===4)document.getElementById('add-btn').style.display='none';
+});
+
+document.getElementById('start-btn').addEventListener('click',function(){
+  players=[];
+  for(var i=0;i<nPlayers;i++){var el=document.getElementById('p'+i);players.push(el&&el.value.trim()?el.value.trim():'Player '+(i+1));}
+  positions=[];for(var i=0;i<nPlayers;i++)positions.push(0);
+  curPlayer=0;qIdx=0;usedQs=[];
+  show('game');buildTrack();renderScores();loadQ();
+});
+
+document.getElementById('next-btn').addEventListener('click',function(){
+  curPlayer=(curPlayer+1)%players.length;renderScores();loadQ();
+});
+
+document.getElementById('restart-btn').addEventListener('click',function(){
+  nPlayers=1;
+  document.getElementById('player-inputs').innerHTML='<div class="player-row"><div class="player-tag p0">P1</div><input id="p0" value="Player 1" placeholder="Player 1 name"></div>';
+  document.getElementById('add-btn').style.display='';
+  show('setup');
+});
+
+function buildTrack(){
+  var t=document.getElementById('track');t.innerHTML='';
+  for(var i=0;i<TOTAL;i++){
+    var c=document.createElement('div');c.className='cell';c.id='c'+i;
+    if(i===0){c.classList.add('start');c.textContent='GO';}
+    else if(i===FINISH){c.classList.add('finish');c.textContent='END';}
+    else if(CHECKPOINTS.indexOf(i)>-1){c.classList.add('checkpoint');c.textContent='*';}
+    else c.textContent=i;
+    t.appendChild(c);
+  }
+  renderTokens();
+}
+
+function renderTokens(){
+  var old=document.querySelectorAll('.token');for(var i=0;i<old.length;i++)old[i].remove();
+  for(var i=0;i<players.length;i++){
+    var cell=document.getElementById('c'+positions[i]);
+    var tk=document.createElement('div');tk.className='token tk'+i;cell.appendChild(tk);
+  }
+}
+
+function renderScores(){
+  var sb=document.getElementById('scoreboard');sb.innerHTML='';
+  for(var i=0;i<players.length;i++){
+    var card=document.createElement('div');
+    card.className='score-card'+(i===curPlayer?' active':'');
+    card.innerHTML='<div class="score-name">'+players[i]+'</div><div class="score-pos">pos: '+positions[i]+' / '+FINISH+'</div>';
+    sb.appendChild(card);
+  }
+}
+
+function loadQ(){
+  answered=false;
+  var pool=[];for(var i=0;i<Q.length;i++){if(usedQs.indexOf(i)<0)pool.push(i);}
+  if(!pool.length){usedQs=[];for(var i=0;i<Q.length;i++)pool.push(i);}
+  var idx=pool[Math.floor(Math.random()*pool.length)];
+  usedQs.push(idx);curQ=Q[idx];qIdx++;
+  document.getElementById('q-counter').textContent='Q '+qIdx;
+  document.getElementById('q-cat').textContent=curQ.cat;
+  document.getElementById('q-text').textContent=curQ.q;
+  document.getElementById('turn-name').textContent=players[curPlayer];
+  var badge=document.getElementById('q-diff');badge.textContent=curQ.d;badge.className='diff diff-'+curQ.d;
+  shuffled=shuffle([0,1,2,3]);correctPos=shuffled.indexOf(curQ.ans);
+  var optsEl=document.getElementById('options');optsEl.innerHTML='';
+  for(var pos=0;pos<4;pos++){
+    (function(p){
+      var btn=document.createElement('button');btn.className='opt';
+      btn.textContent=curQ.opts[shuffled[p]];
+      btn.addEventListener('click',function(){pick(p,btn,optsEl);});
+      optsEl.appendChild(btn);
+    })(pos);
+  }
+  document.getElementById('feedback').className='feedback';
+  document.getElementById('feedback').textContent='';
+  document.getElementById('next-btn').className='next-btn';
+}
+
+function pick(pos,btn,optsEl){
+  if(answered)return;answered=true;
+  var btns=optsEl.querySelectorAll('.opt');for(var i=0;i<btns.length;i++)btns[i].disabled=true;
+  var fb=document.getElementById('feedback');
+  if(pos===correctPos){
+    btn.classList.add('correct');
+    positions[curPlayer]=Math.min(positions[curPlayer]+2,FINISH);
+    fb.className='feedback ok show';fb.textContent='Correct! +2 steps. '+curQ.exp;
+  } else {
+    btn.classList.add('wrong');
+    btns[correctPos].classList.add('reveal');
+    fb.className='feedback no show';fb.textContent='Wrong. '+curQ.exp;
+  }
+  renderTokens();renderScores();
+  if(positions[curPlayer]>=FINISH){setTimeout(endGame,800);return;}
+  document.getElementById('next-btn').className='next-btn show';
+}
+
+function endGame(){
+  show('end');
+  document.getElementById('winner-name').textContent=players[curPlayer];
+  var sorted=[];
+  for(var i=0;i<players.length;i++)sorted.push({name:players[i],pos:positions[i]});
+  sorted.sort(function(a,b){return b.pos-a.pos;});
+  var html='';for(var i=0;i<sorted.length;i++)html+='<div class="final-row"><strong>'+(i+1)+'. '+sorted[i].name+'</strong><span class="mono-sm">pos '+sorted[i].pos+' / '+FINISH+'</span></div>';
+  document.getElementById('final-scores').innerHTML=html;
+}
+</script>
+</body>
+</html>
